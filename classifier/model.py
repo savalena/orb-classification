@@ -8,7 +8,7 @@ class Classifier(pl.LightningModule):
                  base_network,
                  fully_connected_layer,
                  activation=F.log_softmax,
-                 loss=F.nll_loss):
+                 loss=torch.nn.NLLLoss()):
         super().__init__()
         self.model = base_network
         self.model.fc = fully_connected_layer
@@ -26,9 +26,14 @@ class Classifier(pl.LightningModule):
         # training_step defined the train loop.
         # It is independent of forward
         images, labels = batch
-        predict = self.activation(self.forward(images)).flatten()
-        # print(labels.shape)
+        predict = self.activation(self.forward(images))
         loss = self.loss(predict, labels)
         # Logging to TensorBoard by default
         self.log("train_loss", loss)
         return loss
+
+    def validation_step(self, batch, batch_idx):
+        images, labels = batch
+        predict = self.activation(self.forward(images))
+        val_loss = self.loss(predict, labels)
+        self.log("val_loss", val_loss)
