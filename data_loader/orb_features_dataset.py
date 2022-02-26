@@ -1,4 +1,3 @@
-from torchvision import transforms
 from torch.utils.data import Dataset
 from torchvision.io import read_image
 import pandas as pd
@@ -7,21 +6,13 @@ import numpy as np
 import os
 from pathlib import Path
 
-DEFAULT_RESNET_TRANSFORM = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            # transforms.ToTensor(),
-            transforms.ConvertImageDtype(torch.float),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225]),
-        ])
-
 
 class ORBFeaturesDataset(Dataset):
-    def __init__(self, root, datasets, labels_file, classification_threshold, transform):
+    def __init__(self, root, datasets, classification_threshold, transform, combine_data=True):
         root = Path(root)
         images_list = []
         labels_list = []
+        features_list = []
         for dataset in datasets:
             print('datasetname:', dataset)
             dataset_path = root / dataset
@@ -30,15 +21,22 @@ class ORBFeaturesDataset(Dataset):
             assert len(dataset_images) > 0
             images_list.append(dataset_images)
 
-            dataset_labels = pd.read_csv(str(dataset_path / labels_file), header=None).to_numpy().reshape(-1)
-            assert dataset_labels.shape[0] > 0
-            labels_list.append(dataset_labels > classification_threshold)
+            dataset_features = pd.read_csv(str(dataset_path / "labels.csv"), header=None).to_numpy().reshape(-1)
+            assert dataset_features.shape[0] > 0
+            labels_list.append(dataset_features > classification_threshold)
+            features_list.append(dataset_features)
             print('num images:', dataset_images.shape[0])
-            print('num labels:',  dataset_labels.shape[0])
-            assert dataset_images.shape[0] == dataset_labels.shape[0]
+            print('num labels:',  dataset_features.shape[0])
+            assert dataset_images.shape[0] == dataset_features.shape[0]
 
-        self.images_list = np.concatenate(images_list, axis=0)
-        self.labels = np.concatenate(labels_list, axis=0)
+        if combine_data:
+            self.images_list = np.concatenate(images_list, axis=0)
+            self.labels = np.concatenate(labels_list, axis=0)
+        else:
+            self.images_list = images_list
+            self.labels = labels_list
+        self.features_list = features_list
+        
         self.transform = transform
 
     def __len__(self):

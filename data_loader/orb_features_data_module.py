@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader, random_split
-from .orb_features_dataset import ORBFeaturesDataset, DEFAULT_RESNET_TRANSFORM
+from .orb_features_dataset import ORBFeaturesDataset
 import pytorch_lightning as pl
 
 
@@ -7,16 +7,16 @@ class ORBFeaturesDataModule(pl.LightningDataModule):
     def __init__(self,
                  root,
                  dataset,
-                 labels_file,
                  classification_threshold,
-                 transform=DEFAULT_RESNET_TRANSFORM,
+                 transform,
                  batch_size=128,
                  shuffle=True,
-                 num_workers=4):
+                 num_workers=4,
+                 num_val=1000,
+                 num_test=1000):
         super().__init__()
         self.root = root
         self.dataset = dataset
-        self.labels_file = labels_file
         self.transform = transform
 
         self.batch_size = batch_size
@@ -24,17 +24,18 @@ class ORBFeaturesDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.classification_threshold = classification_threshold
 
+        self.num_val = num_val
+        self.num_test = num_test
+
     def setup(self, stage):
         dataset = ORBFeaturesDataset(self.root,
                                      self.dataset,
-                                     self.labels_file,
                                      classification_threshold=self.classification_threshold,
                                      transform=self.transform)
-        num_val = 1000
-        num_test = 1000
-        num_train = len(dataset) - num_val - num_test
-
-        self.train_dataset, self.val_dataset, self.test_dataset = random_split(dataset, [num_train, num_val, num_test])
+        num_train = len(dataset) - self.num_val - self.num_test
+        self.train_dataset, self.val_dataset, self.test_dataset = random_split(dataset, [num_train,
+                                                                                         self.num_val,
+                                                                                         self.num_test])
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=self.shuffle,
