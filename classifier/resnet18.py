@@ -2,6 +2,8 @@ from .base_model import BaseModel
 import torch
 import torch.nn as nn
 from torchvision import transforms
+from .utils import get_fc_layers
+
 
 DEFAULT_RESNET_TRANSFORM = transforms.Compose([
             transforms.Resize(256),
@@ -14,12 +16,15 @@ DEFAULT_RESNET_TRANSFORM = transforms.Compose([
 
 
 class Resnet18Model(BaseModel):
-    def __init__(self, fc, transform=DEFAULT_RESNET_TRANSFORM, freeze_backbone=False):
+    def __init__(self, in_size, hidden_sizes, out_size, transform=DEFAULT_RESNET_TRANSFORM, freeze_backbone=False):
         super().__init__(transform)
         self.backbone = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
         self.backbone.fc = nn.Identity()
-        self.fc = fc
+        self.fc = get_fc_layers(in_size, hidden_sizes, out_size)
+        print("network head")
+        print(self.fc)
         self.prepare_backbone(freeze_backbone)
+        # self.save_hyperparameters()
 
     def forward(self, x):
         y = self.backbone(x)
