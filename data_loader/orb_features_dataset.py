@@ -36,7 +36,7 @@ class ORBFeaturesDataset(Dataset):
             self.images_list = images_list
             self.labels = labels_list
         self.features_list = features_list
-        
+
         self.transform = transform
 
     def __len__(self):
